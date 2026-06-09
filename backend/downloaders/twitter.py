@@ -52,6 +52,9 @@ def download_twitter(url: str, out_dir: Path, on_progress: ProgressCB = None) ->
         elif status == "finished":
             emit(progress=96, stage="후처리 중", current=d.get("filename"))
 
+    co = cookie_opts()  # cookies.txt 있으면 로그인 상태로 받음
+    has_cookie = "cookiefile" in co or "cookiesfrombrowser" in co
+
     ydl_opts = {
         "outtmpl": str(out_dir / "%(uploader_id)s %(id)s %(autonumber)s.%(ext)s"),
         "format": "bv*+ba/b",
@@ -60,11 +63,31 @@ def download_twitter(url: str, out_dir: Path, on_progress: ProgressCB = None) ->
         "no_warnings": True,
         "progress_hooks": [hook],
         "windowsfilenames": True,
-        **cookie_opts(),  # cookies.txt 있으면 로그인 상태로 받음 (민감/제한 트윗)
+        **co,
     }
 
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+    except Exception as e:
+        msg = str(e)
+        # X는 이제 영상 추출에 로그인을 강제한다. 쿠키 없이 실패하면 원인을 명확히 안내.
+        login_walled = (
+            "No video could be found" in msg
+            or "NSFW" in msg
+            or "age-restricted" in msg.lower()
+            or "Unable to download" in msg
+            or "log in" in msg.lower()
+            or "logged in" in msg.lower()
+        )
+        if not has_cookie and login_walled:
+            raise Exception(
+                "X(트위터)는 이제 영상 다운로드에 로그인이 필요합니다. "
+                "쿠키가 없어 X가 영상을 내주지 않았어요. "
+                "바탕화면 'SNS 다운로드' 폴더에 cookies.txt를 넣으면 자동으로 인식합니다. "
+                "(크롬 확장 'Get cookies.txt LOCALLY'로 x.com 쿠키를 내보내거나 grab_cookies_cdp.py 실행)"
+            )
+        raise
 
     # Reliable file detection: diff the output folder before/after. Catches the
     # final merged container regardless of extension changes during postprocess.

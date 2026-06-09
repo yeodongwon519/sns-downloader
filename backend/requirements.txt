@@ -3,3 +3,6 @@ uvicorn[standard]>=0.29
 pydantic>=2.6
 yt-dlp>=2024.5.27
 instaloader>=4.11
+
+# X(트위터) 쿠키 추출 헬퍼 grab_cookies_cdp.py 가 사용 (CDP WebSocket)
+websocket-client>=1.7
