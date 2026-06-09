@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SNS Downloader</title>
+<style>
+  :root{
+    --bg:#0e1116; --card:#171b22; --card2:#1f242d; --line:#2a313c;
+    --text:#e6e9ef; --dim:#9aa4b2; --accent:#4f8cff; --accent2:#3a6fd8;
+    --ok:#3fb950; --err:#f85149; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 80px}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.3px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;background:var(--card);
+    padding:6px;border-radius:var(--radius);border:1px solid var(--line)}
+  .tab{flex:1;text-align:center;padding:10px 8px;border-radius:10px;cursor:pointer;
+    font-size:14px;font-weight:600;color:var(--dim);user-select:none;transition:.15s}
+  .tab.active{background:var(--accent);color:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;margin-bottom:16px}
+  label{display:block;font-size:13px;color:var(--dim);margin:0 0 6px}
+  input[type=text],input[type=password]{width:100%;padding:12px 14px;background:var(--card2);
+    border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;outline:none}
+  input:focus{border-color:var(--accent)}
+  .row{margin-bottom:14px}
+  .row:last-child{margin-bottom:0}
+  .checks{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+  .chk{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--text);cursor:pointer}
+  .chk input{width:16px;height:16px;accent-color:var(--accent)}
+  button.go{width:100%;padding:13px;background:var(--accent);color:#fff;border:0;border-radius:10px;
+    font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+  button.go:hover{background:var(--accent2)}
+  button.go:disabled{opacity:.5;cursor:not-allowed}
+  .hidden{display:none!important}
+  .progress{margin-top:18px}
+  .bar{height:10px;background:var(--card2);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  .status{font-size:13px;color:var(--dim);margin-top:8px;display:flex;justify-content:space-between;gap:10px}
+  .status .cur{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+  .files{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  .file{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+  .file .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file a{color:var(--accent);text-decoration:none;font-weight:600;white-space:nowrap}
+  .msg{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:13px;display:none}
+  .msg.err{background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.4);color:#ffb3ae;display:block}
+  .msg.ok{background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.4);color:#9ae6a4;display:block}
+  .tokenbar{margin-bottom:16px}
+  details{font-size:12px;color:var(--dim)}
+  details summary{cursor:pointer}
+  .hint{font-size:12px;color:var(--dim);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SNS Downloader</h1>
+  <div class="sub">YouTube · X(Twitter) · Instagram 통합 다운로드</div>
+
+  <details class="tokenbar">
+    <summary>접속 토큰 설정 (외부 노출 시)</summary>
+    <div class="row" style="margin-top:10px">
+      <input type="text" id="token" placeholder="토큰 (설정 안 했으면 비워두기)" />
+      <div class="hint">입력하면 브라우저에 저장되어 모든 요청에 사용됩니다.</div>
+    </div>
+  </details>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="youtube">YouTube</div>
+    <div class="tab" data-tab="twitter">X / Twitter</div>
+    <div class="tab" data-tab="instagram">Instagram</div>
+  </div>
+
+  <!-- YouTube -->
+  <div class="card pane" id="pane-youtube">
+    <div class="row">
+      <label>YouTube 영상 URL</label>
+      <input type="text" id="yt-url" placeholder="https://youtube.com/watch?v=... 또는 youtu.be/..." />
+    </div>
+    <button class="go" id="yt-go">다운로드</button>
+  </div>
+
+  <!-- Twitter -->
+  <div class="card pane hidden" id="pane-twitter">
+    <div class="row">
+      <label>X / Twitter 게시물 URL</label>
+      <input type="text" id="tw-url" placeholder="https://x.com/계정/status/숫자" />
+    </div>
+    <button class="go" id="tw-go">다운로드</button>
+  </div>
+
+  <!-- Instagram -->
+  <div class="card pane hidden" id="pane-instagram">
+    <div class="row">
+      <label>다운로드 방식</label>
+      <div class="checks">
+        <label class="chk"><input type="radio" name="ig-mode" value="profile" checked> 계정 전체</label>
+        <label class="chk"><input type="radio" name="ig-mode" value="post"> 게시물 1개</label>
+      </div>
+    </div>
+
+    <div id="ig-profile-fields">
+      <div class="row">
+        <label>대상 계정 (@없이)</label>
+        <input type="text" id="ig-target" placeholder="예: nasa" />
+      </div>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="ig-posts" checked> 게시물</label>
+        <label class="chk"><input type="checkbox" id="ig-highlights" checked> 하이라이트</label>
+      </div>
+    </div>
+
+    <div id="ig-post-fields" class="hidden">
+      <div class="row">
+        <label>게시물 URL</label>
+        <input type="text" id="ig-posturl" placeholder="https://instagram.com/p/..." />
+      </div>
+    </div>
+
+    <div class="row">
+      <label>본인 인스타 ID</label>
+      <input type="text" id="ig-user" autocomplete="username" placeholder="로그인용 ID" />
+    </div>
+    <div class="row">
+      <label>본인 인스타 비밀번호</label>
+      <input type="password" id="ig-pass" autocomplete="current-password" placeholder="로그인용 비밀번호" />
+    </div>
+    <div class="row hidden" id="ig-2fa-row">
+      <label>2단계 인증 코드</label>
+      <input type="text" id="ig-2fa" placeholder="앱에 표시된 6자리 코드" />
+    </div>
+    <button class="go" id="ig-go">다운로드</button>
+    <div class="hint">비밀번호는 이 PC 밖으로 나가지 않습니다. 세션은 sessions/ 에 저장돼 다음부턴 자동 로그인됩니다.</div>
+  </div>
+
+  <!-- Shared progress / result -->
+  <div class="card progress hidden" id="prog-card">
+    <div class="bar"><i id="bar"></i></div>
+    <div class="status">
+      <span id="stage">대기 중</span>
+      <span class="cur" id="current"></span>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="files" id="files"></div>
+  </div>
+</div>
+
+<script>
+const $ = (s)=>document.querySelector(s);
+const tokenInput = $("#token");
+tokenInput.value = localStorage.getItem("dl_token") || "";
+tokenInput.addEventListener("input", ()=>localStorage.setItem("dl_token", tokenInput.value.trim()));
+
+function headers(){
+  const h = {"Content-Type":"application/json"};
+  const t = tokenInput.value.trim();
+  if(t){ h["x-token"] = t; }
+  return h;
+}
+
+// Tabs
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".pane").forEach(p=>p.classList.add("hidden"));
+    $("#pane-"+tab.dataset.tab).classList.remove("hidden");
+  });
+});
+
+// Instagram mode toggle
+document.querySelectorAll('input[name="ig-mode"]').forEach(r=>{
+  r.addEventListener("change", ()=>{
+    const mode = document.querySelector('input[name="ig-mode"]:checked').value;
+    $("#ig-profile-fields").classList.toggle("hidden", mode!=="profile");
+    $("#ig-post-fields").classList.toggle("hidden", mode!=="post");
+  });
+});
+
+let polling = null;
+
+function setBusy(busy){
+  document.querySelectorAll("button.go").forEach(b=>b.disabled=busy);
+}
+function showProg(){ $("#prog-card").classList.remove("hidden"); }
+function setBar(p){ $("#bar").style.width = (p||0)+"%"; }
+function setStage(s,c){ $("#stage").textContent = s||""; $("#current").textContent = c||""; }
+function setMsg(text, kind){
+  const m=$("#msg");
+  if(!text){ m.className="msg"; m.textContent=""; return; }
+  m.className = "msg "+(kind||"");
+  m.textContent = text;
+}
+function fmtSize(n){
+  if(!n) return "";
+  const u=["B","KB","MB","GB"]; let i=0,x=n;
+  while(x>=1024 && i<u.length-1){x/=1024;i++;}
+  return x.toFixed(i?1:0)+u[i];
+}
+function renderFiles(files){
+  const box=$("#files"); box.innerHTML="";
+  (files||[]).forEach(f=>{
+    const div=document.createElement("div"); div.className="file";
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=f.name;
+    const right=document.createElement("span");
+    if(f.url){
+      const a=document.createElement("a");
+      a.href=f.url; a.textContent="받기 "+fmtSize(f.size); a.setAttribute("download","");
+      right.appendChild(a);
+    } else { right.textContent=fmtSize(f.size); }
+    div.appendChild(nm); div.appendChild(right); box.appendChild(div);
+  });
+}
+
+async function start(endpoint, payload){
+  if(polling){ clearInterval(polling); polling=null; }
+  setBusy(true); showProg(); setBar(0); setStage("요청 중…",""); setMsg(""); renderFiles([]);
+  let res;
+  try{
+    res = await fetch(endpoint, {method:"POST", headers:headers(), body:JSON.stringify(payload)});
+  }catch(e){ setBusy(false); setMsg("서버에 연결할 수 없습니다. run.bat 이 켜져 있는지 확인하세요.","err"); return; }
+
+  if(res.status===401){ setBusy(false); setMsg("토큰이 필요하거나 올바르지 않습니다. 상단에서 토큰을 입력하세요.","err"); return; }
+  let data;
+  try{ data = await res.json(); }catch(e){ data = {}; }
+  if(!res.ok){ setBusy(false); setMsg(data.detail || ("오류 "+res.status), "err"); return; }
+
+  const jobId = data.job_id;
+  poll(jobId);
+}
+
+function poll(jobId){
+  polling = setInterval(async ()=>{
+    let r;
+    try{ r = await fetch("/api/jobs/"+jobId, {headers:headers()}); }
+    catch(e){ return; }
+    if(!r.ok) return;
+    const j = await r.json();
+    setBar(j.progress);
+    setStage(j.stage || j.status, j.current);
+
+    if(j.status==="done"){
+      clearInterval(polling); polling=null; setBusy(false);
+      setBar(100); setMsg("완료되었습니다.","ok"); renderFiles(j.files);
+    } else if(j.status==="error"){
+      clearInterval(polling); polling=null; setBusy(false);
+      if(j.stage==="two_factor_required"){
+        $("#ig-2fa-row").classList.remove("hidden");
+        setMsg("2단계 인증 코드를 입력하고 다시 다운로드를 눌러주세요.","err");
+      } else {
+        setMsg(j.error || "오류가 발생했습니다.","err");
+      }
+    }
+  }, 800);
+}
+
+// Handlers
+$("#yt-go").addEventListener("click", ()=>{
+  const url=$("#yt-url").value.trim();
+  if(!url){ setMsg("URL을 입력하세요.","err"); showProg(); return; }
+  start("/api/youtube", {url});
+});
+$("#tw-go").addEventListener("click", ()=>{
+  const url=$("#tw-url").value.trim();
+  if(!url){ setMsg("URL을 입력하세요.","err"); showProg(); return; }
+  start("/api/twitter", {url});
+});
+$("#ig-go").addEventListener("click", ()=>{
+  const mode=document.querySelector('input[name="ig-mode"]:checked').value;
+  const login_user=$("#ig-user").value.trim();
+  const login_pass=$("#ig-pass").value;
+  const two_factor_code=$("#ig-2fa").value.trim() || null;
+  if(!login_user || !login_pass){ setMsg("로그인 정보를 입력하세요.","err"); showProg(); return; }
+  if(mode==="profile"){
+    const target=$("#ig-target").value.trim();
+    if(!target){ setMsg("대상 계정을 입력하세요.","err"); showProg(); return; }
+    start("/api/instagram", {
+      target, login_user, login_pass, two_factor_code,
+      include_posts: $("#ig-posts").checked,
+      include_highlights: $("#ig-highlights").checked,
+    });
+  } else {
+    const url=$("#ig-posturl").value.trim();
+    if(!url){ setMsg("게시물 URL을 입력하세요.","err"); showProg(); return; }
+    start("/api/instagram/post", {url, login_user, login_pass, two_factor_code});
+  }
+});
+</script>
+</body>
+</html>

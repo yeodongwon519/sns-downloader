@@ -1,0 +1,34 @@
+# ───────── 비밀/민감 (절대 공개 금지) ─────────
+sessions/            # 인스타 로그인 세션 (instagram.py가 여기 저장)
+*.session
+cookies.txt
+*cookies*.txt
+.env
+*.token
+
+# ───────── 다운로드 결과물 ─────────
+downloads/
+SNS 다운로드/
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# ───────── 파이썬 / 가상환경 / 캐시 ─────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ───────── OS / 에디터 ─────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

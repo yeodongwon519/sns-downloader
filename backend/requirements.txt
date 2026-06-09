@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+yt-dlp>=2024.5.27
+instaloader>=4.11
